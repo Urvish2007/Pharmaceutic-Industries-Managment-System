@@ -1,0 +1,199 @@
+// RELATED QUERIES AND THEIR SOLUTION IN POSTRESQL QUERIES FORM
+
+
+1. Retrieve all materials from Material_Master.
+
+- SELECT * FROM Material_Master;
+
+2. List all products with their generic names.
+
+- SELECT Product_Name, Generic_Name FROM Product_Master;
+
+3. Find all transactions of type 'buy'.
+
+- SELECT * FROM Transactions WHERE Transaction_Type = 'buy';
+
+4. Display all batches with stock greater than 10,000.
+
+- SELECT * FROM Batch WHERE Stock_Qty > 10000;
+
+5. Find all materials stored in warehouse with stock more than 20,000.
+
+- SELECT Material_ID, Stock FROM Warehouse WHERE Stock > 20000;
+
+6. Get all accounts with their transactions.
+
+- SELECT A.Account_Name, T.Invoice_No
+  FROM Account_Master A
+  JOIN Transactions T ON A.Account_No = T.Account_No;
+
+7. List all materials used in a specific product (e.g., 'SP0001PD').
+
+- SELECT Material_ID
+  FROM Formula_Master
+  WHERE Product_ID = 'SP0001PD';
+
+8. Find all batches along with product names.
+
+- SELECT B.Batch_No, P.Product_Name
+  FROM Batch B
+  JOIN Product_Master P ON B.Product_ID = P.Product_ID;
+
+9. Find all materials that failed quality check.
+
+- SELECT * FROM Material_Quality_Check WHERE Results = 'FAILED';
+
+10. Find products with more than 3 materials in formula.
+
+- SELECT Product_ID, COUNT(Material_ID) AS Material_Count FROM Formula_Master
+GROUP BY Product_ID HAVING COUNT(Material_ID) > 3;
+
+11. Find total quantity issued for each batch.
+
+- SELECT Batch_No, SUM(Quantity_Issued) AS Total_Issued FROM Material_Dispensing
+GROUP BY Batch_No;
+
+12. Find product name, batch number, and stock quantity.
+
+- SELECT P.Product_Name, B.Batch_No, B.Stock_Qty FROM Product_Master P JOIN Batch B ON P.Product_ID = B.Product_ID;
+
+13. Find materials used in batches with product name.
+
+- SELECT P.Product_Name, M.Material_ID FROM Product_Master P
+  JOIN Batch B ON P.Product_ID = B.Product_ID
+  JOIN Material_Dispensing MD ON B.Batch_No = MD.Batch_No
+  JOIN Warehouse W ON MD.Item_ID = W.Item_ID
+  JOIN Material_Master M ON W.Material_ID = M.Material_ID;
+
+14. Find total sales quantity per batch.
+
+- SELECT Batch_No, SUM(Sale_Qty) FROM FG_Transaction GROUP BY Batch_No;
+
+15. Find accounts involved in sell transactions only.
+
+- SELECT DISTINCT A.Account_Name FROM Account_Master A JOIN Transactions T ON A.Account_No = T.Account_No WHERE T.Transaction_Type = 'sell';
+
+16. Find batches where issued quantity exceeds stock.
+
+- SELECT B.Batch_No FROM Batch B JOIN Material_Dispensing MD ON B.Batch_No = MD.Batch_No
+GROUP BY B.Batch_No, B.Stock_Qty HAVING SUM(MD.Quantity_Issued) > B.Stock_Qty;
+
+17. Find products that use hazardous materials.
+
+SELECT DISTINCT P.Product_Name FROM Product_Master P JOIN Formula_Master F ON P.Product_ID = F.Product_ID JOIN Material_Master M ON F.Material_ID = M.Material_ID WHERE M.isHazardous = TRUE;
+
+18. Find total transaction value for each account.
+
+SELECT A.Account_Name, SUM(T.Total_Value) FROM Account_Master A JOIN Transactions T ON A.Account_No = T.Account_No GROUP BY A.Account_Name;
+
+19. Find products whose all batches passed quality check.
+
+SELECT DISTINCT P.Product_Name FROM Product_Master P
+JOIN Batch B ON P.Product_ID = B.Product_ID
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM Product_Quality_Check PQ
+    WHERE PQ.Batch_No = B.Batch_No
+    AND PQ.Results = 'FAILED'
+);
+
+20. Find all materials that are hazardous and inflammable.
+
+ - SELECT * FROM Material_Master WHERE isHazardous = TRUE AND isInflammable = TRUE;
+
+21. Find expired batches (based on current date).
+
+SELECT * FROM Batch WHERE Exp_Date < CURRENT_DATE;
+
+22. Find batches that will expire in next 30 days.
+
+SELECT * FROM Batch WHERE Exp_Date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days';
+
+23. Find total raw material consumed for each product.
+
+SELECT P.Product_Name, SUM(MD.Quantity_Issued) AS Total_Consumed FROM Product_Master P
+JOIN Batch B ON P.Product_ID = B.Product_ID JOIN Material_Dispensing MD ON B.Batch_No = MD.Batch_No GROUP BY P.Product_Name;
+
+24. Find suppliers/customers with highest transaction value.
+
+SELECT A.Account_Name, SUM(T.Total_Value) AS Total_Amount FROM Account_Master A
+JOIN Transactions T ON A.Account_No = T.Account_No GROUP BY A.Account_Name ORDER BY Total_Amount DESC;
+
+25. Find materials that are not used in any product.
+
+SELECT Material_ID
+FROM Material_Master
+WHERE Material_ID NOT IN (
+    SELECT Material_ID FROM Formula_Master
+);
+
+26. Find products that have never been manufactured.
+
+SELECT Product_ID
+FROM Product_Master
+WHERE Product_ID NOT IN (
+    SELECT Product_ID FROM Batch
+);
+
+27. Find warehouse items that have not undergone quality check.
+
+SELECT Item_ID
+FROM Warehouse
+WHERE Item_ID NOT IN (
+    SELECT Item_ID FROM Material_Quality_Check
+);
+
+28. Find batches with failed product quality check.
+
+SELECT Batch_No
+FROM Product_Quality_Check
+WHERE Results = 'FAILED';
+
+29. Find total revenue generated from sales.
+
+SELECT SUM(Total_Value) AS Total_Revenue FROM Transactions WHERE Transaction_Type = 'sell';
+
+30. Find raw materials used in more than 2 products.
+
+SELECT Material_ID, COUNT(Product_ID)
+FROM Formula_Master
+GROUP BY Material_ID
+HAVING COUNT(Product_ID) > 2;
+
+31. Find most used raw material (highest issued quantity).
+
+SELECT W.Material_ID, SUM(MD.Quantity_Issued) AS Total_Used
+FROM Material_Dispensing MD
+JOIN Warehouse W ON MD.Item_ID = W.Item_ID
+GROUP BY W.Material_ID
+ORDER BY Total_Used DESC
+LIMIT 1;
+
+32. Find batches where stock is zero but production happened.
+
+SELECT *
+FROM Batch
+WHERE Stock_Qty = 0 AND Batch_Size > 0;
+
+33. Find average sample size used in quality checks.
+
+SELECT AVG(Sample_Size)
+FROM Material_Quality_Check;
+
+34. Find transactions where payment is still pending.
+
+SELECT *
+FROM Transactions
+WHERE Paid_Received = FALSE;
+
+35. Find products whose all batches passed quality check.
+
+SELECT DISTINCT P.Product_Name
+FROM Product_Master P
+JOIN Batch B ON P.Product_ID = B.Product_ID
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM Product_Quality_Check PQ
+    WHERE PQ.Batch_No = B.Batch_No
+    AND PQ.Results = 'FAILED'
+);
