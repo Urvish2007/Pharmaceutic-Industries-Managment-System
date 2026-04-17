@@ -958,6 +958,83 @@ WHERE Stock_Qty = 0 AND Batch_Size > 0;
 SELECT AVG(Sample_Size)
 FROM Material_Quality_Check;
 
+-- Find total quantity sold for each product
+SELECT P.Product_Name, SUM(FG.Sale_Qty) AS Total_Sold
+FROM FG_Transaction FG
+JOIN Batch B ON FG.Batch_No = B.Batch_No
+JOIN Product_Master P ON B.Product_ID = P.Product_ID
+GROUP BY P.Product_Name;
+
+-- Find batches which are manufactured but not sold yet
+SELECT B.Batch_No, B.Product_ID
+FROM Batch B
+WHERE B.Batch_No NOT IN (
+    SELECT Batch_No
+    FROM FG_Transaction
+);
+
+-- Find Product which failed quality check but still used in production
+SELECT DISTINCT W.Material_ID, MD.Batch_No
+FROM Material_Quality_Check MQC
+JOIN Warehouse W ON MQC.Item_ID = W.Item_ID
+JOIN Material_Dispensing MD ON W.Item_ID = MD.Item_ID
+WHERE MQC.Results = 'FAILED';
+
+-- Find total number of product which failed quality test per analyst
+SELECT Analyst_Name, COUNT(*) AS Failed_Count
+FROM Material_Quality_Check
+WHERE Results = 'FAILED'
+GROUP BY Analyst_Name;
+
+-- Find most expensive purchase transaction
+SELECT *
+FROM Transactions
+WHERE Transaction_Type = 'buy'
+AND Total_Value = (
+    SELECT MAX(Total_Value)
+    FROM Transactions
+    WHERE Transaction_Type = 'buy'
+);
+
+-- Find most expensive sell transaction
+
+SELECT *
+FROM Transactions
+WHERE Transaction_Type = 'sell'
+AND Total_Value = (
+    SELECT MAX(Total_Value)
+    FROM Transactions
+    WHERE Transaction_Type = 'sell'
+);
+
+-- Find accounts having in more sell and buy both transaction
+
+SELECT Account_No
+FROM Transactions
+GROUP BY Account_No
+HAVING COUNT(DISTINCT Transaction_Type) = 2;
+
+-- No.of.transaction in each currency
+SELECT Currency, COUNT(*) AS Transaction_Count
+FROM Transactions
+GROUP BY Currency;
+
+-- Find currency-wise pending payments
+SELECT Currency, SUM(Total_Value) AS Pending_Amount
+FROM Transactions
+WHERE Paid_Received = FALSE
+GROUP BY Currency;
+
+-- Find most frequent used currency
+
+SELECT Currency, COUNT(*) AS Usage_Count
+FROM Transactions
+GROUP BY Currency
+ORDER BY Usage_Count DESC
+LIMIT 1;
+
+
+
 SELECT *
 FROM Transactions
 WHERE Paid_Received = FALSE;
